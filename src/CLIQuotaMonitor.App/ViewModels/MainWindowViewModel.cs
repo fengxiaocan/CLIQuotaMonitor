@@ -322,13 +322,23 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 
     public bool HasError => IsStale || (!string.IsNullOrWhiteSpace(ErrorMessage) && Status != ProviderStatus.Ok);
 
-    public string CompactText => Quotas.Count == 0
-        ? StatusText
-        : string.Join(
-            "  │  ",
-            Quotas
-                .OrderBy(quota => GetQuotaSortOrder(quota.Name))
-                .Select(quota => $"{quota.Name} {quota.RemainingText}"));
+    private bool HasQuotaDisplayError =>
+        string.Equals(ProviderId, "grok", StringComparison.OrdinalIgnoreCase) &&
+        ((Status != ProviderStatus.Ok &&
+          Status != ProviderStatus.Unknown &&
+          Status != ProviderStatus.Refreshing) ||
+         (Status == ProviderStatus.Ok &&
+          !Quotas.Any(quota => quota.RemainingPercent is not null)));
+
+    public string CompactText => HasQuotaDisplayError
+        ? "ERROR"
+        : Quotas.Count == 0
+            ? StatusText
+            : string.Join(
+                "  │  ",
+                Quotas
+                    .OrderBy(quota => GetQuotaSortOrder(quota.Name))
+                    .Select(quota => $"{quota.Name} {quota.RemainingText}"));
 
     public string MinimalPrefix => ProviderId.ToLowerInvariant() switch
     {
@@ -378,11 +388,13 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         return 3;
     }
 
-    public string MinimalQuotasText => Quotas.Count == 0
-        ? StatusText
-        : string.Join(" | ", Quotas
-            .OrderBy(q => GetQuotaSortOrder(q.Name))
-            .Select(quota => $"{FormatMinimalQuotaName(ProviderId, quota.Name)}:{quota.RemainingText}"));
+    public string MinimalQuotasText => HasQuotaDisplayError
+        ? "ERROR"
+        : Quotas.Count == 0
+            ? StatusText
+            : string.Join(" | ", Quotas
+                .OrderBy(q => GetQuotaSortOrder(q.Name))
+                .Select(quota => $"{FormatMinimalQuotaName(ProviderId, quota.Name)}:{quota.RemainingText}"));
 
     public string MinimalText => $"{MinimalPrefix} {MinimalQuotasText}";
 

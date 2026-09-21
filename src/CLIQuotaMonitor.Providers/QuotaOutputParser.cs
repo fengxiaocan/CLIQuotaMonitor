@@ -104,21 +104,24 @@ internal static partial class QuotaOutputParser
                 continue;
             }
 
-            var valueMatch = ValuePattern().Match(line);
-            if (valueMatch.Success &&
-                decimal.TryParse(
-                    valueMatch.Groups["value"].Value.Replace(",", string.Empty),
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out var value))
+            if (!string.Equals(providerId, "grok", StringComparison.OrdinalIgnoreCase))
             {
-                var name = NormalizeQuotaName(providerId, valueMatch.Groups["label"].Value);
-                var unit = valueMatch.Groups["unit"].Success
-                    ? valueMatch.Groups["unit"].Value
-                    : null;
-                var resetAt = ParseResetAt(valueMatch.Groups["rest"].Value, now);
-                quotas.Add(new QuotaItem(name, null, resetAt, value, unit));
-                continue;
+                var valueMatch = ValuePattern().Match(line);
+                if (valueMatch.Success &&
+                    decimal.TryParse(
+                        valueMatch.Groups["value"].Value.Replace(",", string.Empty),
+                        NumberStyles.Number,
+                        CultureInfo.InvariantCulture,
+                        out var value))
+                {
+                    var name = NormalizeQuotaName(providerId, valueMatch.Groups["label"].Value);
+                    var unit = valueMatch.Groups["unit"].Success
+                        ? valueMatch.Groups["unit"].Value
+                        : null;
+                    var resetAt = ParseResetAt(valueMatch.Groups["rest"].Value, now);
+                    quotas.Add(new QuotaItem(name, null, resetAt, value, unit));
+                    continue;
+                }
             }
 
             if (parseSessionUsage)

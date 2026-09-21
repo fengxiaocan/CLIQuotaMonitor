@@ -211,19 +211,26 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Grid Margin="0,2" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{Binding DisplayName}">
+                            <Grid VerticalAlignment="Center" ToolTip="{Binding DisplayName}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding MinimalPrefix}"
                                            FontFamily="Consolas, Cascadia Code, Segoe UI, monospace"
                                            FontSize="12"
                                            FontWeight="Bold"
                                            Foreground="{Binding BrandColor}"
                                            Margin="0,0,7,0" />
-                                <TextBlock Text="{Binding MinimalQuotasText}"
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding MinimalQuotasText}"
                                            FontFamily="Consolas, Cascadia Code, Segoe UI, monospace"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="#F1F5F9" />
-                            </StackPanel>
+                                           Foreground="#F1F5F9"
+                                           TextTrimming="CharacterEllipsis"
+                                           MinWidth="0" />
+                            </Grid>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

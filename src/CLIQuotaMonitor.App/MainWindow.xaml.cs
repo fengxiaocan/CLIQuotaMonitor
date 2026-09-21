@@ -14,6 +14,8 @@ namespace CLIQuotaMonitor.App;
 
 public partial class MainWindow : Window
 {
+    private const double NormalWindowWidth = 390;
+
     private readonly AppSettings _settings;
     private readonly JsonSettingsStore _settingsStore;
     private readonly IClock _clock;
@@ -270,6 +272,7 @@ public partial class MainWindow : Window
 
         if (ViewModel.DisplayMode == DisplayMode.Minimal)
         {
+            MaxWidth = NormalWindowWidth;
             Width = double.NaN;
             SizeToContent = SizeToContent.WidthAndHeight;
             MainBorder.Padding = new Thickness(12, 8, 12, 8);
@@ -277,7 +280,8 @@ public partial class MainWindow : Window
         }
         else
         {
-            Width = 390;
+            MaxWidth = double.PositiveInfinity;
+            Width = NormalWindowWidth;
             SizeToContent = SizeToContent.Height;
             MainBorder.Padding = new Thickness(14, 12, 14, 12);
             MainBorder.CornerRadius = new CornerRadius(14);

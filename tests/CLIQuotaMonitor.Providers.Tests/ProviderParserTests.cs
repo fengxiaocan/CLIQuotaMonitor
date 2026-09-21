@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using CLIQuotaMonitor.Core.Models;
 
 namespace CLIQuotaMonitor.Providers.Tests;
 
@@ -111,6 +112,18 @@ public sealed class ProviderParserTests
         Assert.Single(quotas);
         Assert.Equal("Weekly", GetProperty<string>(quotas[0], "Name"));
         Assert.Equal(22d, GetProperty<double?>(quotas[0], "RemainingPercent"));
+    }
+
+    [Fact]
+    public void Grok_parser_does_not_treat_non_percentage_values_as_quota()
+    {
+        const string output = "Desktop: 90 tokens";
+
+        var snapshot = Parse("GrokQuotaParser", output);
+        var quotas = GetProperty<IEnumerable>(snapshot, "Quotas").Cast<object>().ToList();
+
+        Assert.Empty(quotas);
+        Assert.Equal(ProviderStatus.ParseError, GetProperty<ProviderStatus>(snapshot, "Status"));
     }
 
     [Fact]

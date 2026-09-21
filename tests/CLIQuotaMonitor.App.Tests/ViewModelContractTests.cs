@@ -230,6 +230,72 @@ public sealed class ViewModelContractTests
     }
 
     [Fact]
+    public void Provider_card_shows_ERROR_when_refresh_did_not_produce_a_percentage()
+    {
+        var cardType = Assembly.Load("CLIQuotaMonitor.App")
+            .GetType("CLIQuotaMonitor.App.ViewModels.ProviderCardViewModel");
+        Assert.NotNull(cardType);
+
+        var card = Activator.CreateInstance(cardType!, "grok", "Grok");
+        var update = cardType!.GetMethod("Update");
+        Assert.NotNull(update);
+        var snapshot = new QuotaSnapshot
+        {
+            ProviderId = "grok",
+            ProviderName = "Grok",
+            Status = ProviderStatus.ParseError,
+            Quotas = [new QuotaItem("Desktop", null, null, 90, "tokens")]
+        };
+
+        update!.Invoke(card, [snapshot, DateTimeOffset.UtcNow, null]);
+
+        Assert.Equal("ERROR", cardType.GetProperty("CompactText")!.GetValue(card));
+        Assert.Equal("ERROR", cardType.GetProperty("MinimalQuotasText")!.GetValue(card));
+    }
+
+    [Theory]
+    [InlineData("codex")]
+    [InlineData("antigravity")]
+    public void Provider_card_keeps_cached_percentages_for_non_grok_refresh_errors(string providerId)
+    {
+        var cardType = Assembly.Load("CLIQuotaMonitor.App")
+            .GetType("CLIQuotaMonitor.App.ViewModels.ProviderCardViewModel");
+        Assert.NotNull(cardType);
+
+        var card = Activator.CreateInstance(cardType!, providerId, providerId);
+        var update = cardType!.GetMethod("Update");
+        Assert.NotNull(update);
+        var snapshot = new QuotaSnapshot
+        {
+            ProviderId = providerId,
+            ProviderName = providerId,
+            Status = ProviderStatus.Timeout,
+            IsStale = true,
+            Quotas =
+            [
+                new QuotaItem("5h", 72, null),
+                new QuotaItem("Weekly", 43, null)
+            ]
+        };
+
+        update!.Invoke(card, [snapshot, DateTimeOffset.UtcNow, null]);
+
+        Assert.DoesNotContain("ERROR", (string)cardType.GetProperty("CompactText")!.GetValue(card)!);
+        Assert.DoesNotContain("ERROR", (string)cardType.GetProperty("MinimalQuotasText")!.GetValue(card)!);
+        Assert.Contains("72%", (string)cardType.GetProperty("CompactText")!.GetValue(card)!);
+    }
+
+    [Fact]
+    public void Main_window_bounds_minimal_content_to_the_normal_window_width()
+    {
+        var codePath = FindSourceFile("src", "CLIQuotaMonitor.App", "MainWindow.xaml.cs");
+        var code = File.ReadAllText(codePath);
+
+        Assert.Contains("MaxWidth", code, StringComparison.Ordinal);
+        Assert.Contains("390", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Antigravity_card_orders_five_hour_before_weekly_in_all_layouts()
     {
         var cardType = Assembly.Load("CLIQuotaMonitor.App")
