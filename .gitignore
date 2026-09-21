@@ -1,0 +1,47 @@
+## .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+*.userosv
+*.userprefs
+*.sln.docstates
+
+## Build & Publish Output
+artifacts/
+publish/
+[Bb]uild/
+[Dd]ist/
+[Oo]ut/
+TestResults/
+*.DotSettings.user
+
+## IDE / Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.swp
+*~
+
+## Packages
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+
+## OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+## Log files
+*.log

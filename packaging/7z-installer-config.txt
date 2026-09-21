@@ -1,0 +1,4 @@
+;!@Install@!UTF-8!
+RunProgram="powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File Install.ps1"
+GUIMode="1"
+;!@InstallEnd@!
