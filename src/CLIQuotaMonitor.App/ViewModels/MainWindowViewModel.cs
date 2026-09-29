@@ -358,15 +358,19 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         }
 
         if (name.Equals("Weekly", StringComparison.OrdinalIgnoreCase) ||
-            name.Equals("Weekly Limit", StringComparison.OrdinalIgnoreCase))
+            name.Equals("Weekly Limit", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("Weekly limit left", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("Weekly left", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("7d", StringComparison.OrdinalIgnoreCase))
         {
-            return "Weekly";
+            return "7d";
         }
 
         if (string.Equals(providerId, "grok", StringComparison.OrdinalIgnoreCase) &&
-            name.Equals("Limit", StringComparison.OrdinalIgnoreCase))
+            (name.Equals("Limit", StringComparison.OrdinalIgnoreCase) ||
+             name.Equals("Limit left", StringComparison.OrdinalIgnoreCase)))
         {
-            return "Weekly";
+            return "7d";
         }
 
         return name;
@@ -380,7 +384,8 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
             return 1;
         }
 
-        if (name.Contains("Week", StringComparison.OrdinalIgnoreCase))
+        if (name.Contains("Week", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("7d", StringComparison.OrdinalIgnoreCase))
         {
             return 2;
         }
@@ -396,7 +401,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
                 .OrderBy(q => GetQuotaSortOrder(q.Name))
                 .Select(quota => $"{FormatMinimalQuotaName(ProviderId, quota.Name)}:{quota.RemainingText}"));
 
-    public string MinimalText => $"{MinimalPrefix} {MinimalQuotasText}";
+    public string MinimalText => $"{MinimalPrefix.PadRight(Math.Max(5, MinimalPrefix.Length))}  {MinimalQuotasText}";
 
     public void Update(
         QuotaSnapshot snapshot,

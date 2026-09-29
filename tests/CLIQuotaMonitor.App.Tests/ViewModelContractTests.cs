@@ -180,7 +180,7 @@ public sealed class ViewModelContractTests
             .GetType("CLIQuotaMonitor.App.ViewModels.ProviderCardViewModel");
         Assert.NotNull(cardType);
 
-        // Codex test: codex 5h:80% | Weekly:40%
+        // Codex test: codex  5h:80% | 7d:40%
         var codexCard = Activator.CreateInstance(cardType!, "codex", "Codex");
         var update = cardType!.GetMethod("Update");
         var codexSnapshot = new QuotaSnapshot
@@ -196,9 +196,9 @@ public sealed class ViewModelContractTests
         };
         update!.Invoke(codexCard, [codexSnapshot, DateTimeOffset.UtcNow, null]);
         var codexText = cardType.GetProperty("MinimalText")!.GetValue(codexCard);
-        Assert.Equal("codex 5h:80% | Weekly:40%", codexText);
+        Assert.Equal("codex  5h:80% | 7d:40%", codexText);
 
-        // Grok test: grok Weekly:50%
+        // Grok test: grok   7d:50%
         var grokCard = Activator.CreateInstance(cardType!, "grok", "Grok");
         var grokSnapshot = new QuotaSnapshot
         {
@@ -209,9 +209,9 @@ public sealed class ViewModelContractTests
         };
         update!.Invoke(grokCard, [grokSnapshot, DateTimeOffset.UtcNow, null]);
         var grokText = cardType.GetProperty("MinimalText")!.GetValue(grokCard);
-        Assert.Equal("grok Weekly:50%", grokText);
+        Assert.Equal("grok   7d:50%", grokText);
 
-        // Antigravity test: agy 5h:20% | weekly:20% (sorting 5h before weekly)
+        // Antigravity test: agy    5h:20% | 7d:20% (sorting 5h before 7d)
         var agyCard = Activator.CreateInstance(cardType!, "antigravity", "Antigravity");
         var agySnapshot = new QuotaSnapshot
         {
@@ -226,7 +226,17 @@ public sealed class ViewModelContractTests
         };
         update!.Invoke(agyCard, [agySnapshot, DateTimeOffset.UtcNow, null]);
         var agyText = cardType.GetProperty("MinimalText")!.GetValue(agyCard);
-        Assert.Equal("agy 5h:20% | Weekly:20%", agyText);
+        Assert.Equal("agy    5h:20% | 7d:20%", agyText);
+    }
+
+    [Fact]
+    public void Main_window_aligns_minimal_mode_columns_with_shared_size_group()
+    {
+        var xamlPath = FindSourceFile("src", "CLIQuotaMonitor.App", "MainWindow.xaml");
+        var xaml = File.ReadAllText(xamlPath);
+
+        Assert.Contains("Grid.IsSharedSizeScope=\"True\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("SharedSizeGroup=\"MinimalPrefixGroup\"", xaml, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -327,6 +337,53 @@ public sealed class ViewModelContractTests
             .ToList();
         Assert.Equal("5h", rows[0].GetType().GetProperty("Name")!.GetValue(rows[0]));
         Assert.Equal("Weekly", rows[1].GetType().GetProperty("Name")!.GetValue(rows[1]));
+    }
+
+    [Fact]
+    public void AppIconGenerator_can_generate_valid_ico_file()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"test_icon_{Guid.NewGuid():N}.ico");
+        try
+        {
+            AppIconGenerator.SaveIcoFile(tempFile);
+            Assert.True(File.Exists(tempFile));
+            var info = new FileInfo(tempFile);
+            Assert.True(info.Length > 1000);
+
+            var csproj = FindSourceFile("src", "CLIQuotaMonitor.App", "CLIQuotaMonitor.App.csproj");
+            var projectDir = Path.GetDirectoryName(csproj)!;
+            var appIco = Path.Combine(projectDir, "app.ico");
+            AppIconGenerator.SaveIcoFile(appIco);
+            Assert.True(File.Exists(appIco));
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
+
+    [Fact]
+    public void Main_window_implements_robust_topmost_maintenance()
+    {
+        var windowType = Assembly.Load("CLIQuotaMonitor.App")
+            .GetType("CLIQuotaMonitor.App.MainWindow");
+        Assert.NotNull(windowType);
+        Assert.NotNull(windowType!.GetMethod("EnsureTopmost"));
+        Assert.NotNull(windowType!.GetMethod("SetTopmostState"));
+
+        var xamlPath = FindSourceFile("src", "CLIQuotaMonitor.App", "MainWindow.xaml");
+        var xaml = File.ReadAllText(xamlPath);
+        Assert.Contains("Deactivated=\"Window_Deactivated\"", xaml, StringComparison.Ordinal);
+
+        var codePath = FindSourceFile("src", "CLIQuotaMonitor.App", "MainWindow.xaml.cs");
+        var code = File.ReadAllText(codePath);
+        Assert.Contains("WM_WINDOWPOSCHANGING", code, StringComparison.Ordinal);
+        Assert.Contains("WM_ACTIVATEAPP", code, StringComparison.Ordinal);
+        Assert.Contains("HWND_TOPMOST", code, StringComparison.Ordinal);
+        Assert.Contains("EnsureTopmost()", code, StringComparison.Ordinal);
     }
 
     private static string FindSourceFile(params string[] segments)

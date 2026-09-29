@@ -115,6 +115,59 @@ public sealed class ProviderParserTests
     }
 
     [Fact]
+    public void Grok_parser_reads_weekly_limit_left_with_path_in_output()
+    {
+        const string output = "~/A/Local/CLIQuotaMonitor  Weekly limit left: 5% · ";
+        var snapshot = Parse("GrokQuotaParser", output);
+        var quotas = GetProperty<IEnumerable>(snapshot, "Quotas").Cast<object>().ToList();
+
+        Assert.Single(quotas);
+        Assert.Equal("Weekly", GetProperty<string>(quotas[0], "Name"));
+        Assert.Equal(5d, GetProperty<double?>(quotas[0], "RemainingPercent"));
+    }
+
+    [Fact]
+    public void Grok_parser_separates_ansi_cursor_positions_and_reads_weekly_limit()
+    {
+        const string output = "\u001b[2;3Hmain ~/A/Local/CLIQuotaMonitor  \u001b[47;98H Weekly limit left: 5% · ";
+        var snapshot = Parse("GrokQuotaParser", output);
+        var quotas = GetProperty<IEnumerable>(snapshot, "Quotas").Cast<object>().ToList();
+
+        Assert.Single(quotas);
+        Assert.Equal("Weekly", GetProperty<string>(quotas[0], "Name"));
+        Assert.Equal(5d, GetProperty<double?>(quotas[0], "RemainingPercent"));
+    }
+
+    [Fact]
+    public void Grok_parser_deduplicates_and_prefers_limit_with_reset_time()
+    {
+        const string output = """
+            ~/A/Local/CLIQuotaMonitor  Weekly limit left: 5% · 
+            Weekly limit (SuperGrok)
+            █████████████████████████████░  95%
+            Resets: September 24, 17:14
+            """;
+        var snapshot = Parse("GrokQuotaParser", output);
+        var quotas = GetProperty<IEnumerable>(snapshot, "Quotas").Cast<object>().ToList();
+
+        Assert.Single(quotas);
+        Assert.Equal("Weekly", GetProperty<string>(quotas[0], "Name"));
+        Assert.Equal(5d, GetProperty<double?>(quotas[0], "RemainingPercent"));
+        Assert.NotNull(GetProperty<DateTimeOffset?>(quotas[0], "ResetAt"));
+    }
+
+    [Fact]
+    public void Grok_parser_does_not_treat_non_limit_percentage_as_quota()
+    {
+        const string output = "Memory: 45%";
+        var snapshot = Parse("GrokQuotaParser", output);
+        var quotas = GetProperty<IEnumerable>(snapshot, "Quotas").Cast<object>().ToList();
+
+        Assert.Empty(quotas);
+        Assert.Equal(ProviderStatus.ParseError, GetProperty<ProviderStatus>(snapshot, "Status"));
+    }
+
+    [Fact]
     public void Grok_parser_does_not_treat_non_percentage_values_as_quota()
     {
         const string output = "Desktop: 90 tokens";

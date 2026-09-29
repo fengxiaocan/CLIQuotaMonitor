@@ -16,6 +16,7 @@
         Topmost="True"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         Loaded="Window_Loaded"
+        Deactivated="Window_Deactivated"
         Closing="Window_Closing">
     <!-- Outer Card with Multi-Layer Drop Shadow -->
     <Border x:Name="MainBorder"
@@ -207,13 +208,14 @@
             <!-- Provider Cards List (Minimal) -->
             <ItemsControl Grid.Row="0"
                           ItemsSource="{Binding ProviderCards}"
+                          Grid.IsSharedSizeScope="True"
                           Visibility="{Binding DataContext.DisplayMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource DisplayModeVisibilityConverter}, ConverterParameter=Minimal}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Grid Margin="0,2" Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Grid VerticalAlignment="Center" ToolTip="{Binding DisplayName}">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="MinimalPrefixGroup" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding MinimalPrefix}"
@@ -221,7 +223,7 @@
                                            FontSize="12"
                                            FontWeight="Bold"
                                            Foreground="{Binding BrandColor}"
-                                           Margin="0,0,7,0" />
+                                           Margin="0,0,14,0" />
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding MinimalQuotasText}"
                                            FontFamily="Consolas, Cascadia Code, Segoe UI, monospace"

@@ -25,7 +25,7 @@ public partial class MainWindow : Window
     private bool _allowApplicationExit;
     private HwndSource? _hwndSource;
 
-    // Win32 Constants and P/Invoke for Mouse Click-Through & Hotkey
+    // Win32 Constants and P/Invoke for Mouse Click-Through, Hotkey & Robust Topmost
     [DllImport("user32.dll", SetLastError = true)]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
@@ -33,19 +33,54 @@ public partial class MainWindow : Window
     private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
     [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int X,
+        int Y,
+        int cx,
+        int cy,
+        uint uFlags);
+
+    [DllImport("user32.dll", SetLastError = true)]
     private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+    private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+
     private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_TOPMOST = 0x00000008;
     private const int WS_EX_TRANSPARENT = 0x00000020;
     private const int WS_EX_LAYERED = 0x00080000;
+
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_HIDEWINDOW = 0x0080;
+    private const uint SWP_NOOWNERZORDER = 0x0200;
+
     private const int HOTKEY_ID = 9001;
     private const uint MOD_ALT = 0x0001;
     private const uint MOD_CONTROL = 0x0002;
     private const uint VK_Q = 0x51;
+    private const int WM_ACTIVATEAPP = 0x001C;
+    private const int WM_WINDOWPOSCHANGING = 0x0046;
     private const int WM_HOTKEY = 0x0312;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINDOWPOS
+    {
+        public IntPtr hwnd;
+        public IntPtr hwndInsertAfter;
+        public int x;
+        public int y;
+        public int cx;
+        public int cy;
+        public uint flags;
+    }
 
     public MainWindow(
         MainWindowViewModel viewModel,
@@ -64,7 +99,14 @@ public partial class MainWindow : Window
         Topmost = settings.Window.Topmost;
         Opacity = settings.Window.Opacity;
         _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _countdownTimer.Tick += (_, _) => ViewModel.Tick();
+        _countdownTimer.Tick += (_, _) =>
+        {
+            ViewModel.Tick();
+            if (_settings.Window.Topmost && IsVisible)
+            {
+                EnsureTopmost();
+            }
+        };
         _refreshTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(Math.Max(30, settings.RefreshIntervalSeconds))
@@ -93,6 +135,11 @@ public partial class MainWindow : Window
         // Apply Click-Through state
         SetClickThrough(_settings.Window.ClickThrough);
 
+        if (_settings.Window.Topmost)
+        {
+            EnsureTopmost();
+        }
+
         _countdownTimer.Start();
         if (_settings.AutoRefreshEnabled)
         {
@@ -109,8 +156,36 @@ public partial class MainWindow : Window
             ToggleClickThrough();
             handled = true;
         }
+        else if (msg == WM_WINDOWPOSCHANGING && _settings.Window.Topmost && IsVisible)
+        {
+            try
+            {
+                var wp = Marshal.PtrToStructure<WINDOWPOS>(lParam);
+                if ((wp.flags & SWP_HIDEWINDOW) == 0 && wp.hwndInsertAfter != HWND_TOPMOST)
+                {
+                    wp.hwndInsertAfter = HWND_TOPMOST;
+                    Marshal.StructureToPtr(wp, lParam, false);
+                }
+            }
+            catch
+            {
+                // Ignore any marshalling anomalies
+            }
+        }
+        else if (msg == WM_ACTIVATEAPP && _settings.Window.Topmost && IsVisible)
+        {
+            EnsureTopmost();
+        }
 
         return IntPtr.Zero;
+    }
+
+    private void Window_Deactivated(object? sender, EventArgs e)
+    {
+        if (_settings.Window.Topmost && IsVisible)
+        {
+            EnsureTopmost();
+        }
     }
 
     private void Window_Closing(object? sender, CancelEventArgs e)
@@ -175,7 +250,7 @@ public partial class MainWindow : Window
 
     public void ApplySettings()
     {
-        Topmost = _settings.Window.Topmost;
+        SetTopmostState(_settings.Window.Topmost);
         Opacity = Math.Clamp(_settings.Window.Opacity, 0.1, 1.0);
         ThemeManager.ApplyTheme(_settings.Theme);
         ViewModel.ApplySettings(_settings);
@@ -191,6 +266,90 @@ public partial class MainWindow : Window
         }
 
         SetClickThrough(_settings.Window.ClickThrough);
+    }
+
+    public void SetTopmostState(bool enabled)
+    {
+        _settings.Window.Topmost = enabled;
+        Topmost = enabled;
+
+        var helper = new WindowInteropHelper(this);
+        var handle = helper.Handle;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var exStyle = GetWindowLong(handle, GWL_EXSTYLE);
+        if (enabled)
+        {
+            if ((exStyle & WS_EX_TOPMOST) == 0)
+            {
+                SetWindowLong(handle, GWL_EXSTYLE, exStyle | WS_EX_TOPMOST);
+            }
+
+            SetWindowPos(
+                handle,
+                HWND_TOPMOST,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+        }
+        else
+        {
+            if ((exStyle & WS_EX_TOPMOST) != 0)
+            {
+                SetWindowLong(handle, GWL_EXSTYLE, exStyle & ~WS_EX_TOPMOST);
+            }
+
+            SetWindowPos(
+                handle,
+                HWND_NOTOPMOST,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+        }
+
+        _ = _settingsStore.SaveAsync(_settings);
+    }
+
+    public void EnsureTopmost()
+    {
+        if (!_settings.Window.Topmost || !IsVisible)
+        {
+            return;
+        }
+
+        var helper = new WindowInteropHelper(this);
+        var handle = helper.Handle;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        if (!Topmost)
+        {
+            Topmost = true;
+        }
+
+        var exStyle = GetWindowLong(handle, GWL_EXSTYLE);
+        if ((exStyle & WS_EX_TOPMOST) == 0)
+        {
+            SetWindowLong(handle, GWL_EXSTYLE, exStyle | WS_EX_TOPMOST);
+        }
+
+        SetWindowPos(
+            handle,
+            HWND_TOPMOST,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
     }
 
     public void SetClickThrough(bool enabled)
@@ -216,6 +375,11 @@ public partial class MainWindow : Window
         if (Application.Current is App app)
         {
             app.RefreshTrayMenu();
+        }
+
+        if (_settings.Window.Topmost)
+        {
+            EnsureTopmost();
         }
     }
 

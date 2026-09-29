@@ -150,6 +150,23 @@ IQuotaProvider (Providers) ── Codex / Grok / Antigravity 适配器
 2. 实现 `IQuotaParser` 接口，定义该 CLI 响应文本的解析逻辑（提取额度数值、百分比、重置时间）；
 3. 在 `QuotaManager` 或依赖注入中注册该 Provider 即可自动获得错峰刷新、缓存降级与悬浮窗展示能力。
 
+### 🔨 构建与安装包打包
+
+项目提供一键构建与安装包打包脚本（支持 Inno Setup 与 7-Zip SFX）：
+
+```powershell
+# 1. 编译并打包独立运行版 EXE 安装包（内置运行时，免安装 .NET 8）
+.\build-installer.ps1
+
+# 2. 或打包轻量版 EXE 安装包（依赖宿主系统的 .NET 8 桌面运行时）
+.\build-installer.ps1 -FrameworkDependent
+```
+
+打包完成后，生成的安装包将存放于 `dist/` 目录下（如 `dist/CLIQuotaMonitor-Setup-1.0.0.exe`）。安装包特性：
+- 完整的向导安装界面（支持自定义安装路径、创建桌面快捷方式、开机自动启动）
+- 自动关闭正在运行的应用并安全升级
+- 拥有完整的 Windows 卸载程序（已在 Windows “应用和功能 / 添加或删除程序”注册）
+
 ---
 
 ## 📚 设计文档

@@ -132,6 +132,7 @@ public partial class App : System.Windows.Application
 
         _mainWindow.Show();
         _mainWindow.Activate();
+        _mainWindow.EnsureTopmost();
     }
 
     public void HideOverlay() => _mainWindow?.Hide();
@@ -263,13 +264,15 @@ public partial class App : System.Windows.Application
         {
             if (_settings is not null)
             {
-                _settings.Window.Topmost = topmostItem.Checked;
                 if (_mainWindow is not null)
                 {
-                    _mainWindow.Topmost = topmostItem.Checked;
+                    _mainWindow.SetTopmostState(topmostItem.Checked);
                 }
-
-                _ = _settingsStore?.SaveAsync(_settings);
+                else
+                {
+                    _settings.Window.Topmost = topmostItem.Checked;
+                    _ = _settingsStore?.SaveAsync(_settings);
+                }
             }
 
             RefreshTrayMenu();
