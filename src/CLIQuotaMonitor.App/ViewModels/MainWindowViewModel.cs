@@ -335,10 +335,21 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         : Quotas.Count == 0
             ? StatusText
             : string.Join(
-                "  │  ",
+                " | ",
                 Quotas
                     .OrderBy(quota => GetQuotaSortOrder(quota.Name))
-                    .Select(quota => $"{quota.Name} {quota.RemainingText}"));
+                    .Select(quota => $"{FormatMinimalQuotaName(ProviderId, quota.Name)}:{quota.RemainingText}"));
+
+    public bool HasCompactResetText => !HasQuotaDisplayError && Quotas.Any(q => q.HasResetText);
+
+    public string CompactResetText => HasQuotaDisplayError
+        ? string.Empty
+        : string.Join(
+            " | ",
+            Quotas
+                .Where(q => q.HasResetText)
+                .OrderBy(q => GetQuotaSortOrder(q.Name))
+                .Select(q => $"{FormatMinimalQuotaName(ProviderId, q.Name)}:{q.ResetText}"));
 
     public string MinimalPrefix => ProviderId.ToLowerInvariant() switch
     {
@@ -449,6 +460,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         {
             quota.Tick(now);
         }
+
+        OnPropertyChanged(nameof(CompactResetText));
+        OnPropertyChanged(nameof(HasCompactResetText));
     }
 
     private void RaiseAll()
@@ -466,6 +480,8 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasError));
         OnPropertyChanged(nameof(ErrorMessage));
         OnPropertyChanged(nameof(CompactText));
+        OnPropertyChanged(nameof(CompactResetText));
+        OnPropertyChanged(nameof(HasCompactResetText));
         OnPropertyChanged(nameof(MinimalPrefix));
         OnPropertyChanged(nameof(MinimalQuotasText));
         OnPropertyChanged(nameof(MinimalText));
@@ -491,7 +507,21 @@ public sealed class QuotaRowViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string Name => _quota.Name;
+    public string Name => FormatQuotaDisplayName(_quota.Name);
+
+    public static string FormatQuotaDisplayName(string name)
+    {
+        if (name.Equals("Weekly", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("Weekly Limit", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("Weekly limit left", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("Weekly left", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("7d", StringComparison.OrdinalIgnoreCase))
+        {
+            return "7d";
+        }
+
+        return name;
+    }
 
     public double? RemainingPercent => _quota.RemainingPercent;
 

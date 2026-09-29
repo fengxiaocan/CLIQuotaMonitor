@@ -306,6 +306,33 @@ public sealed class ViewModelContractTests
     }
 
     [Fact]
+    public void Detailed_mode_width_targets_compact_mode_normal_window_width()
+    {
+        var codePath = FindSourceFile("src", "CLIQuotaMonitor.App", "MainWindow.xaml.cs");
+        var code = File.ReadAllText(codePath);
+
+        Assert.Contains("MinWidth = NormalWindowWidth;", code, StringComparison.Ordinal);
+        Assert.Contains("MaxWidth = NormalWindowWidth;", code, StringComparison.Ordinal);
+        Assert.Contains("Width = NormalWindowWidth;", code, StringComparison.Ordinal);
+        Assert.Contains("NormalWindowWidth = 390", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compact_mode_is_adaptive_width_bounded_by_max_width_and_shows_reset()
+    {
+        var codePath = FindSourceFile("src", "CLIQuotaMonitor.App", "MainWindow.xaml.cs");
+        var code = File.ReadAllText(codePath);
+        Assert.Contains("ViewModel.DisplayMode == DisplayMode.Compact", code, StringComparison.Ordinal);
+        Assert.Contains("SizeToContent = SizeToContent.WidthAndHeight;", code, StringComparison.Ordinal);
+
+        var xamlPath = FindSourceFile("src", "CLIQuotaMonitor.App", "MainWindow.xaml");
+        var xaml = File.ReadAllText(xamlPath);
+        Assert.Contains("CompactResetText", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"{Binding DisplayName}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("FontFamily=\"Consolas, Cascadia Code, Segoe UI, monospace\"", xaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Antigravity_card_orders_five_hour_before_weekly_in_all_layouts()
     {
         var cardType = Assembly.Load("CLIQuotaMonitor.App")
@@ -330,13 +357,13 @@ public sealed class ViewModelContractTests
         update!.Invoke(card, [snapshot, DateTimeOffset.UtcNow, null]);
 
         Assert.Equal(
-            "5h 20%  │  Weekly 20%",
+            "5h:20% | 7d:20%",
             cardType.GetProperty("CompactText")!.GetValue(card));
         var rows = ((System.Collections.IEnumerable)cardType.GetProperty("Quotas")!.GetValue(card)!)
             .Cast<object>()
             .ToList();
         Assert.Equal("5h", rows[0].GetType().GetProperty("Name")!.GetValue(rows[0]));
-        Assert.Equal("Weekly", rows[1].GetType().GetProperty("Name")!.GetValue(rows[1]));
+        Assert.Equal("7d", rows[1].GetType().GetProperty("Name")!.GetValue(rows[1]));
     }
 
     [Fact]

@@ -71,19 +71,13 @@
                                         <Border CornerRadius="4"
                                                 Background="{Binding BrandColor}"
                                                 Padding="5,1"
-                                                Margin="0,0,6,0"
+                                                ToolTip="{Binding DisplayName}"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="{Binding BrandBadgeText}"
                                                        FontSize="9"
                                                        FontWeight="Bold"
                                                        Foreground="#FFFFFF" />
                                         </Border>
-
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   FontSize="12.5"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#F8FAFC"
-                                                   VerticalAlignment="Center" />
 
                                         <!-- Account Chip -->
                                         <Border CornerRadius="4"
@@ -103,6 +97,8 @@
                                             CornerRadius="9"
                                             Background="{Binding StatusBgColor}"
                                             Padding="7,2"
+                                            Margin="14,0,0,0"
+                                            HorizontalAlignment="Right"
                                             VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <Ellipse Width="5" Height="5"
@@ -120,6 +116,7 @@
 
                                 <!-- Detailed Mode: Quota Items with Full-Width Progress Bars -->
                                 <ItemsControl Grid.Row="1"
+                                              Grid.ColumnSpan="2"
                                               Margin="0,7,0,0"
                                               ItemsSource="{Binding Quotas}"
                                               Visibility="{Binding DataContext.DisplayMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource DisplayModeVisibilityConverter}, ConverterParameter=Detailed}">
@@ -172,21 +169,34 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <!-- Compact Mode: Clean Inline Summary -->
+                                <!-- Compact Mode: Clean Inline Summary with Reset Countdown -->
                                 <Border Grid.Row="1"
+                                        Grid.ColumnSpan="2"
                                         Margin="0,6,0,0"
-                                        Padding="8,5"
+                                        Padding="9,6"
                                         Background="#16202E"
                                         CornerRadius="6"
                                         Visibility="{Binding DataContext.DisplayMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource DisplayModeVisibilityConverter}, ConverterParameter=Compact}">
-                                    <TextBlock Text="{Binding CompactText}"
-                                               FontSize="11"
-                                               Foreground="#CBD5E1"
-                                               TextTrimming="CharacterEllipsis" />
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding CompactText}"
+                                                   FontFamily="Consolas, Cascadia Code, Segoe UI, monospace"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#F1F5F9"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding CompactResetText}"
+                                                   FontFamily="Consolas, Cascadia Code, Segoe UI, monospace"
+                                                   FontSize="10.5"
+                                                   Foreground="#94A3B8"
+                                                   Margin="0,3,0,0"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Visibility="{Binding HasCompactResetText, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    </StackPanel>
                                 </Border>
 
                                 <!-- Warning / Stale Banner -->
                                 <Border Grid.Row="2"
+                                        Grid.ColumnSpan="2"
                                         Margin="0,6,0,0"
                                         Padding="8,5"
                                         Background="#2D1B22"

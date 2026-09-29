@@ -436,15 +436,26 @@ public partial class MainWindow : Window
 
         if (ViewModel.DisplayMode == DisplayMode.Minimal)
         {
+            MinWidth = 0;
             MaxWidth = NormalWindowWidth;
             Width = double.NaN;
             SizeToContent = SizeToContent.WidthAndHeight;
             MainBorder.Padding = new Thickness(12, 8, 12, 8);
             MainBorder.CornerRadius = new CornerRadius(10);
         }
+        else if (ViewModel.DisplayMode == DisplayMode.Compact)
+        {
+            MinWidth = 0;
+            MaxWidth = NormalWindowWidth;
+            Width = double.NaN;
+            SizeToContent = SizeToContent.WidthAndHeight;
+            MainBorder.Padding = new Thickness(14, 12, 14, 12);
+            MainBorder.CornerRadius = new CornerRadius(14);
+        }
         else
         {
-            MaxWidth = double.PositiveInfinity;
+            MinWidth = NormalWindowWidth;
+            MaxWidth = NormalWindowWidth;
             Width = NormalWindowWidth;
             SizeToContent = SizeToContent.Height;
             MainBorder.Padding = new Thickness(14, 12, 14, 12);
